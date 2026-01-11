@@ -1,5 +1,5 @@
 
-import { ProductVariant, ProductType } from './types';
+import { ProductVariant, ProductType } from './types.ts';
 
 export const EXCHANGE_RATE_USD = 44.0;
 export const PROFIT_MARGIN = 0.40; // 40%
