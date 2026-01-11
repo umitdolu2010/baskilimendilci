@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ProductVariant, QuoteItem, ProductType } from '../types';
-import { PRODUCT_VARIANTS, ADDITIONAL_COSTS } from '../constants';
+import { ProductVariant, QuoteItem, ProductType } from '../types.ts';
+import { PRODUCT_VARIANTS, ADDITIONAL_COSTS } from '../constants.ts';
 
 interface Props {
   onUpdate: (item: QuoteItem | null) => void;
@@ -41,6 +41,7 @@ const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
       setError(null);
       if (selectedVariant) {
         onUpdate({ 
+          id: Math.random().toString(36).substr(2, 9),
           variant: selectedVariant, 
           quantity, 
           colorCount: colors, 

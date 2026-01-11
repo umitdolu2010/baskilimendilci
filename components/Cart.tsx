@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { QuoteItem, CheckoutData } from '../types';
-import { formatCurrency, calculateQuote } from '../utils/calculations';
+import { QuoteItem, CheckoutData } from '../types.ts';
+import { formatCurrency, calculateQuote } from '../utils/calculations.ts';
 
 interface Props {
   isOpen: boolean;
@@ -23,8 +23,6 @@ const Cart: React.FC<Props> = ({ isOpen, onClose, items, onRemove, onUpdateQuant
 
   const handleFinalCheckout = async () => {
     setLoading(true);
-    // Burada normalde Vercel API'mıza (/api/pay) istek atacağız
-    // Simüle ediyoruz:
     setTimeout(() => {
       setLoading(false);
       setStep('success');
@@ -38,7 +36,6 @@ const Cart: React.FC<Props> = ({ isOpen, onClose, items, onRemove, onUpdateQuant
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onClose}></div>
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
         
-        {/* Step-based Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-xl font-black text-slate-950 tracking-tighter uppercase">
             {step === 'cart' ? 'SEPETİNİZ' : step === 'checkout' ? 'TESLİMAT' : step === 'payment' ? 'ÖDEME' : 'TEBRİKLER'}
@@ -48,7 +45,6 @@ const Cart: React.FC<Props> = ({ isOpen, onClose, items, onRemove, onUpdateQuant
           </button>
         </div>
 
-        {/* Content Area */}
         <div className="flex-grow overflow-y-auto p-6">
           {items.length === 0 && step !== 'success' ? (
             <div className="h-full flex flex-col items-center justify-center text-center">
@@ -149,7 +145,6 @@ const Cart: React.FC<Props> = ({ isOpen, onClose, items, onRemove, onUpdateQuant
           )}
         </div>
 
-        {/* Dynamic Footer */}
         {step !== 'success' && (
           <div className="p-6 border-t border-slate-100 bg-slate-50">
             <div className="flex justify-between items-center mb-6">

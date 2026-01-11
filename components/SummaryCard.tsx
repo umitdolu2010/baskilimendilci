@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { QuoteCalculation, QuoteItem, ProductType } from '../types';
-import { formatCurrency } from '../utils/calculations';
-import { WHATSAPP_NUMBER } from '../constants';
+import { QuoteCalculation, QuoteItem, ProductType } from '../types.ts';
+import { formatCurrency } from '../utils/calculations.ts';
+import { WHATSAPP_NUMBER } from '../constants.ts';
 
 interface Props {
   calculation: QuoteCalculation;

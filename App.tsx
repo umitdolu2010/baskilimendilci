@@ -1,11 +1,11 @@
 
 import React from 'react';
-import Layout from './components/Layout';
-import ProductSelector from './components/ProductSelector';
-import SummaryCard from './components/SummaryCard';
-import Cart from './components/Cart';
-import { QuoteItem } from './types';
-import { calculateQuote } from './utils/calculations';
+import Layout from './components/Layout.tsx';
+import ProductSelector from './components/ProductSelector.tsx';
+import SummaryCard from './components/SummaryCard.tsx';
+import Cart from './components/Cart.tsx';
+import { QuoteItem } from './types.ts';
+import { calculateQuote } from './utils/calculations.ts';
 
 const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -39,13 +39,17 @@ const App: React.FC = () => {
   const [cartItems, setCartItems] = React.useState<QuoteItem[]>([]);
   const [isCartOpen, setIsCartOpen] = React.useState(false);
 
-  // Load cart from local storage
   React.useEffect(() => {
     const saved = localStorage.getItem('cart');
-    if (saved) setCartItems(JSON.parse(saved));
+    if (saved) {
+      try {
+        setCartItems(JSON.parse(saved));
+      } catch (e) {
+        console.error("Cart loading failed", e);
+      }
+    }
   }, []);
 
-  // Save cart to local storage
   React.useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
@@ -85,6 +89,13 @@ const App: React.FC = () => {
     { name: 'Sultan Sofrası', icon: 'SS' }, { name: 'Cafe 34', icon: 'C34' }, { name: 'Bistro Verde', icon: 'BV' },
   ];
 
+  const workSteps = [
+    { title: "Ücretsiz Tasarım", desc: "Logonuzu vektörel hale getirip en şık sunumla onayınıza sunuyoruz.", icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
+    { title: "Hassas Üretim", desc: "Tam otomatik makinelerde, el değmeden hijyenik paketleme yapıyoruz.", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a2 2 0 00-1.96 1.414l-.477 2.387a2 2 0 00.547 1.022l1.428 1.428a2 2 0 002.828 0l1.428-1.428a2 2 0 000-2.828l-1.428-1.428z" },
+    { title: "Kalite Kontrol", desc: "Sızdırmazlık ve baskı netliği testlerinden sonra ürünleri koliliyoruz.", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { title: "Hızlı Sevkiyat", desc: "Türkiye'nin her yerine anlaşmalı ambar ve kargolarla gönderiyoruz.", icon: "M5 13l4 4L19 7" }
+  ];
+
   const faqData = [
     { question: "Minimum sipariş miktarı neden 10.000 adettir?", answer: "Özel baskılı ürünlerde, her iş için ayrı klişe (baskı kalıbı) ve makine ayarı yapılması gerekmektedir. 10.000 adet altındaki siparişlerde sabit kurulum maliyetleri birim fiyatı rasyonel olmayan seviyelere çıkardığı için, fiyat istikrarımızı korumak adına bu sınırı uyguluyoruz." },
     { question: "Grafik tasarım ve logo düzenleme ücretli mi?", answer: "Hayır. Baskılı Mendilci olarak, sipariş veren tüm müşterilerimize ücretsiz grafik tasarım desteği sunuyoruz. Logonuzun çözünürlüğü düşük olsa dahi profesyonel grafik ekibimiz vektörel çizimini yaparak onayınıza sunar." },
@@ -110,7 +121,6 @@ const App: React.FC = () => {
         .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
       `}</style>
 
-      {/* Cart Drawer */}
       <Cart 
         isOpen={isCartOpen} 
         onClose={() => setIsCartOpen(false)} 
@@ -120,7 +130,6 @@ const App: React.FC = () => {
         onOrderComplete={completeOrder}
       />
 
-      {/* Floating Cart Button */}
       <button 
         onClick={() => setIsCartOpen(true)}
         className="fixed bottom-8 right-8 z-[150] bg-orange-500 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center group hover:scale-110 active:scale-95 transition-all"
@@ -148,13 +157,6 @@ const App: React.FC = () => {
             <div className="bg-white p-2 rounded-3xl">
                <ProductSelector onUpdate={setActiveItem} />
             </div>
-
-            <div className="mt-8 p-6 bg-orange-50/50 rounded-2xl border border-orange-100 border-dashed">
-              <p className="text-xs font-bold text-slate-700 leading-relaxed">
-                <span className="text-orange-600 font-black uppercase tracking-widest block mb-1">Teknik Bilgilendirme:</span>
-                Fiyatlar 1 USD = 44 TL sınırına kadar geçerlidir. Özel baskılı üretimlerde adetlerde <span className="text-orange-600">+/-% 5-10</span> sapma payı bulunmaktadır.
-              </p>
-            </div>
           </div>
 
           <div className="lg:col-span-5">
@@ -165,12 +167,30 @@ const App: React.FC = () => {
                 isValid={!!activeItem} 
                 onAddToCart={addToCart}
               />
-              <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200 border-dashed text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                  Kur Garantisi: 1 USD = 44.00 TL
-                </p>
-              </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Çalışma Prensiplerimiz Section */}
+      <section className="py-32 bg-slate-950 text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h3 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-4">Süreç Yönetimi</h3>
+            <h2 className="text-4xl font-black tracking-tighter uppercase">Çalışma <span className="text-orange-500">Prensiplerimiz</span></h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {workSteps.map((step, i) => (
+              <div key={i} className="p-8 bg-white/5 border border-white/10 rounded-[2.5rem] hover:bg-white/10 transition-all group">
+                <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-orange-500/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={step.icon} />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-black uppercase tracking-tight mb-3">{step.title}</h4>
+                <p className="text-slate-400 text-sm font-medium leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -184,9 +204,21 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="pause-on-hover flex flex-col gap-6">
+          {/* Row 1 */}
           <div className="relative fade-mask flex overflow-hidden">
             <div className="flex animate-scroll-left gap-6 whitespace-nowrap px-3">
               {[...row1Brands, ...row1Brands].map((brand, i) => (
+                <div key={i} className="inline-flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl px-8 py-6 min-w-[240px]">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-slate-300 shadow-sm">{brand.icon}</div>
+                  <span className="text-sm font-black text-slate-400 uppercase tracking-widest">{brand.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Row 2 */}
+          <div className="relative fade-mask flex overflow-hidden">
+            <div className="flex animate-scroll-right gap-6 whitespace-nowrap px-3">
+              {[...row2Brands, ...row2Brands].map((brand, i) => (
                 <div key={i} className="inline-flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl px-8 py-6 min-w-[240px]">
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-slate-300 shadow-sm">{brand.icon}</div>
                   <span className="text-sm font-black text-slate-400 uppercase tracking-widest">{brand.name}</span>
