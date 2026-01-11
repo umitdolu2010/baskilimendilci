@@ -1,6 +1,7 @@
 
 export enum ProductType {
   Mendil = 'Mendil',
+  KolonyaliMendil = 'Kolonyalı Mendil',
   Seker = 'Şeker'
 }
 
@@ -13,10 +14,15 @@ export interface ProductVariant {
 }
 
 export interface QuoteItem {
+  id: string; // Cart yönetimi için
   variant: ProductVariant;
   quantity: number;
   colorCount: number;
   logoUploaded?: boolean;
+  alcoholOption?: string;
+  paperType?: string;
+  towelQuality?: string;
+  essence?: string;
 }
 
 export interface QuoteCalculation {
@@ -27,4 +33,14 @@ export interface QuoteCalculation {
   vatTotal: number;
   grandTotal: number;
   grandTotalUSD: number;
+}
+
+export interface CheckoutData {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxNumber: string;
+  taxOffice: string;
+  isCorporate: boolean;
 }
