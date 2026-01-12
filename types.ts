@@ -9,22 +9,29 @@ export interface ProductVariant {
   id: string;
   name: string;
   type: ProductType;
-  baseCost: number;
+  baseCost: number; // Teknik altyapı için duruyor
   vatRate: number;
 }
 
 export interface QuoteItem {
-  id: string; // Cart yönetimi için
+  id: string;
   variant: ProductVariant;
   quantity: number;
   colorCount: number;
-  logoUploaded?: boolean;
+  logoUploaded: boolean;
   alcoholOption?: string;
   paperType?: string;
   towelQuality?: string;
   essence?: string;
 }
 
+export interface LeadData {
+  fullName: string;
+  phone: string;
+  note?: string;
+}
+
+// Added missing interfaces for quote calculation and checkout processes
 export interface QuoteCalculation {
   baseCostTotal: number;
   clicheCostTotal: number;
