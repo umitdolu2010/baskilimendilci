@@ -2,7 +2,7 @@
 import { QuoteItem, QuoteCalculation, ProductType } from '../types';
 import { PROFIT_MARGIN, CLICHE_COST_PER_COLOR, EXCHANGE_RATE_USD, ADDITIONAL_COSTS } from '../constants';
 
-export const calculateQuote = (items: QuoteItem[]): QuoteCalculation => {
+export const calculateQuote = (items: QuoteItem[], discountRate: number = 0): QuoteCalculation => {
   let baseCostTotal = 0;
   let clicheCostTotal = 0;
   let vatTotal = 0;
@@ -10,24 +10,16 @@ export const calculateQuote = (items: QuoteItem[]): QuoteCalculation => {
   items.forEach(item => {
     // Calculate additional costs per unit
     let extraPerUnit = 0;
-    let basePriceMultiplier = 1.0;
-
-    if (item.variant.type === ProductType.Mendil || item.variant.type === ProductType.KolonyaliMendil) {
-      // 20% base cost increase for Cologne wipes
-      if (item.variant.type === ProductType.KolonyaliMendil) {
-        basePriceMultiplier = 1.20;
-      }
-
+    
+    // Mendil Grubu için hesaplamalar
+    if (item.variant.type === ProductType.Mendil) {
       extraPerUnit += ADDITIONAL_COSTS.ALCOHOL[item.alcoholOption as keyof typeof ADDITIONAL_COSTS.ALCOHOL] || 0;
       extraPerUnit += ADDITIONAL_COSTS.PAPER[item.paperType as keyof typeof ADDITIONAL_COSTS.PAPER] || 0;
       extraPerUnit += ADDITIONAL_COSTS.TOWEL[item.towelQuality as keyof typeof ADDITIONAL_COSTS.TOWEL] || 0;
-      
-      if (item.variant.type === ProductType.KolonyaliMendil) {
-        extraPerUnit += ADDITIONAL_COSTS.ESSENCE[item.essence as keyof typeof ADDITIONAL_COSTS.ESSENCE] || 0;
-      }
+      extraPerUnit += ADDITIONAL_COSTS.ESSENCE[item.essence as keyof typeof ADDITIONAL_COSTS.ESSENCE] || 0;
     }
 
-    const unitBaseCost = (item.variant.baseCost * basePriceMultiplier) + extraPerUnit;
+    const unitBaseCost = item.variant.baseCost + extraPerUnit;
     const itemCost = unitBaseCost * item.quantity;
     const itemClicheCost = item.colorCount * CLICHE_COST_PER_COLOR;
     
@@ -35,20 +27,25 @@ export const calculateQuote = (items: QuoteItem[]): QuoteCalculation => {
     clicheCostTotal += itemClicheCost;
     
     // Profit is applied to (Base Materials Cost + Cliche Cost)
+    // Apply discount to the pre-VAT subtotal
     const itemSubtotal = (itemCost + itemClicheCost) * (1 + PROFIT_MARGIN);
-    vatTotal += itemSubtotal * item.variant.vatRate;
+    const discountedItemSubtotal = itemSubtotal * (1 - discountRate);
+
+    vatTotal += discountedItemSubtotal * item.variant.vatRate;
   });
 
   const subtotal = (baseCostTotal + clicheCostTotal) * (1 + PROFIT_MARGIN);
+  const discountedSubtotal = subtotal * (1 - discountRate);
+  
   const profitMarginTotal = (baseCostTotal + clicheCostTotal) * PROFIT_MARGIN;
-  const grandTotal = subtotal + vatTotal;
+  const grandTotal = discountedSubtotal + vatTotal;
   const grandTotalUSD = grandTotal / EXCHANGE_RATE_USD;
 
   return {
     baseCostTotal,
     clicheCostTotal,
     profitMarginTotal,
-    subtotal,
+    subtotal: discountedSubtotal, // Return discounted subtotal
     vatTotal,
     grandTotal,
     grandTotalUSD

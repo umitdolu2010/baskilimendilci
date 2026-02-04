@@ -1,15 +1,19 @@
 
 export enum ProductType {
-  Mendil = 'Mendil',
-  KolonyaliMendil = 'Kolonyalı Mendil',
-  Seker = 'Şeker'
+  Mendil = 'Mendil Grubu',
+  Seker = 'Baskılı Şeker',
+  KeseKagidi = 'Kese Kağıdı',
+  AmbalajKagidi = 'Ambalaj Kağıdı',
+  ServisSeti = 'Servis Seti',
+  KartonBardak = 'Karton Bardak',
+  PetBardak = 'Pet Bardak'
 }
 
 export interface ProductVariant {
   id: string;
   name: string;
   type: ProductType;
-  baseCost: number; // Teknik altyapı için duruyor
+  baseCost: number;
   vatRate: number;
 }
 
@@ -31,7 +35,6 @@ export interface LeadData {
   note?: string;
 }
 
-// Added missing interfaces for quote calculation and checkout processes
 export interface QuoteCalculation {
   baseCostTotal: number;
   clicheCostTotal: number;

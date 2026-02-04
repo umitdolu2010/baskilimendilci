@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { QuoteItem, ProductType, LeadData } from '../types.ts';
 import { WHATSAPP_NUMBER } from '../constants.ts';
+import { calculateQuote, formatCurrency } from '../utils/calculations.ts';
 
 interface Props {
   activeItem: QuoteItem | null;
@@ -10,92 +11,208 @@ interface Props {
 
 const SummaryCard: React.FC<Props> = ({ activeItem, isValid }) => {
   const [lead, setLead] = React.useState<LeadData>({ fullName: '', phone: '', note: '' });
+  const [discountRate, setDiscountRate] = React.useState<number>(0);
+  const [isClientView, setIsClientView] = React.useState(false);
+  const [customerPhoneForLink, setCustomerPhoneForLink] = React.useState('');
+
+  useEffect(() => {
+    // Check if we are in client view mode based on URL
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('view') === 'client') {
+      setIsClientView(true);
+    }
+  }, []);
+
+  // İskonto oranını calculateQuote fonksiyonuna gönderiyoruz
+  const calculation = activeItem ? calculateQuote([activeItem], discountRate) : null;
 
   const getWhatsAppUrl = () => {
-    if (!activeItem || !lead.fullName || !lead.phone) return "#";
+    if (!activeItem || !calculation || !lead.fullName) return "#";
     
-    const logoStatus = activeItem.logoUploaded ? "✅ Mevcut (Vektörel)" : "❌ Tasarım Desteği İstiyorum";
-    let details = `*Ürün:* ${activeItem.variant.name}\n*Miktar:* ${activeItem.quantity.toLocaleString()} Adet\n*Baskı:* ${activeItem.colorCount} Renkli`;
+    let details = `*TÜR:* ${activeItem.variant.type}\n*MODEL:* ${activeItem.variant.name}\n*ADET:* ${activeItem.quantity.toLocaleString()}\n*RENK:* ${activeItem.colorCount}`;
     
-    if (activeItem.variant.type !== ProductType.Seker) {
-      details += `\n*Alkol:* ${activeItem.alcoholOption}\n*Esans:* ${activeItem.essence || 'Standart'}`;
-    }
+    if (activeItem.alcoholOption) details += `\n*İÇERİK:* ${activeItem.alcoholOption} / ${activeItem.essence}`;
+    if (activeItem.logoUploaded) details += `\n*LOGO:* Dosya Eklendi 📎`;
+    if (discountRate > 0) details += `\n*İSKONTO:* %${discountRate * 100} Uygulandı`;
     
-    const message = `*YENİ TEKLİF TALEBİ* 🚀\n--------------------------------\n*Müşteri:* ${lead.fullName}\n*Telefon:* ${lead.phone}\n--------------------------------\n${details}\n*Logo Durumu:* ${logoStatus}\n--------------------------------\n*Müşteri Notu:* ${lead.note || 'Yok'}\n--------------------------------\n_Lütfen bana bu ürün için özel bir fiyat teklifi hazırlayın._`;
+    // Birim fiyatı hesaplarken iskonto düşülmüş toplam üzerinden gidiyoruz
+    const unitPrice = calculation.subtotal / activeItem.quantity;
+    const totals = `*BİRİM FİYAT:* ${formatCurrency(unitPrice)}\n*GENEL TOPLAM:* ${formatCurrency(calculation.grandTotal)}`;
+
+    const message = `*FİYAT TEKLİFİ FORMU* 📄\n--------------------------------\n*Firma:* ${lead.fullName}\n*Tel:* ${lead.phone}\n--------------------------------\n${details}\n--------------------------------\n${totals}\n--------------------------------\n*Not:* ${lead.note || '-'}`;
     
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   };
 
-  const isFormValid = lead.fullName.length > 2 && lead.phone.length > 8;
+  const sendLinkToCustomer = () => {
+    if (customerPhoneForLink.length < 10) {
+      alert("Lütfen geçerli bir telefon numarası giriniz.");
+      return;
+    }
+    // Create the link to the current page with 'view=client' parameter
+    const baseUrl = window.location.origin + window.location.pathname;
+    const clientLink = `${baseUrl}?view=client`;
+    const message = `Merhaba, Eran Tedarik maliyet hesaplama aracımıza buradan ulaşarak güncel fiyatları inceleyebilirsiniz: ${clientLink}`;
+    
+    const waLink = `https://wa.me/90${customerPhoneForLink.replace(/^0+/, '')}?text=${encodeURIComponent(message)}`;
+    window.open(waLink, '_blank');
+  };
+
+  if (!activeItem || !calculation) {
+    return (
+      <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center h-full flex flex-col justify-center items-center opacity-50">
+         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+         </div>
+         <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Hesaplama yapmak için<br/>soldan ürün seçiniz.</p>
+      </div>
+    );
+  }
+
+  const isFormValid = lead.fullName.length > 2;
+  const unitPrice = calculation.subtotal / activeItem.quantity;
 
   return (
-    <div className={`bg-slate-950 rounded-[2.5rem] p-10 shadow-3xl relative overflow-hidden text-white transition-all duration-500 ${!isValid ? 'opacity-40 grayscale pointer-events-none scale-95' : 'opacity-100'}`}>
-      <div className="absolute top-0 right-0 w-40 h-40 bg-orange-600/20 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-      
-      <div className="relative">
-        <div className="mb-10">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-500 mb-2">Özel Teklif Formu</h3>
-          <p className="text-2xl font-black tracking-tighter leading-tight">Size Özel Teklif İçin <br/> Bilgilerinizi Paylaşın</p>
+    <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden sticky top-24">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-amber-600/20 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
+
+      <div className="relative z-10">
+        <div className="flex justify-between items-center mb-6">
+           <h3 className="text-xs font-black text-amber-500 uppercase tracking-[0.2em]">Teklif Özeti</h3>
+           
+           {/* İskonto Seçici - Sadece Yönetici Görür (Client View Değilse) */}
+           {!isClientView && (
+             <div className="relative">
+                <select 
+                  value={discountRate}
+                  onChange={(e) => setDiscountRate(parseFloat(e.target.value))}
+                  className="bg-slate-800 border border-slate-700 text-white text-[10px] font-bold uppercase rounded-lg py-1 px-2 outline-none focus:border-amber-500 appearance-none pr-6 cursor-pointer"
+                >
+                  <option value="0">İndirim Yok</option>
+                  <option value="0.05">%5 İndirim</option>
+                  <option value="0.10">%10 İndirim</option>
+                  <option value="0.15">%15 İndirim</option>
+                  <option value="0.20">%20 İndirim</option>
+                  <option value="0.25">%25 İndirim</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                  <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+             </div>
+           )}
         </div>
         
-        <div className="space-y-4">
-          <div className="group">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Ad Soyad / Firma Ünvanı *</label>
-            <input 
+        {/* Fiş Görünümü */}
+        <div className="space-y-4 mb-8">
+           <div className="flex justify-between items-start pb-4 border-b border-white/10">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Seçilen Ürün</span>
+                <span className="text-lg font-bold leading-tight block">{activeItem.variant.name}</span>
+                <span className="text-xs text-slate-400 mt-1 block">{activeItem.quantity.toLocaleString()} Adet • {activeItem.colorCount} Renk Baskı</span>
+                {activeItem.logoUploaded && (
+                  <span className="inline-flex items-center gap-1 mt-2 text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                    Logo Eklendi
+                  </span>
+                )}
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Birim Fiyat</span>
+                <span className="text-lg font-mono font-medium text-amber-400">
+                  {formatCurrency(unitPrice)}
+                </span>
+                <span className="text-[9px] text-slate-500 block">+KDV</span>
+              </div>
+           </div>
+
+           <div className="space-y-2 py-2">
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Ara Toplam (Klişe Dahil)</span>
+                <span>{formatCurrency(calculation.subtotal)}</span>
+              </div>
+              
+              {discountRate > 0 && (
+                <div className="flex justify-between text-xs text-green-400 font-bold">
+                  <span>İskonto (%{discountRate * 100})</span>
+                  <span>-İndirimli Fiyat Uygulandı</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>KDV (%{(activeItem.variant.vatRate * 100).toFixed(0)})</span>
+                <span>{formatCurrency(calculation.vatTotal)}</span>
+              </div>
+           </div>
+
+           <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+              <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Genel Toplam</span>
+              <span className="text-3xl font-black text-white tracking-tight">{formatCurrency(calculation.grandTotal)}</span>
+           </div>
+        </div>
+
+        {/* Hızlı Form */}
+        <div className="bg-white/5 rounded-2xl p-5 border border-white/5 space-y-3">
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Teklifi Oluştur & Gönder</p>
+           <input 
               type="text" 
-              placeholder="Örn: Mehmet Yılmaz / Gastro Cafe"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+              placeholder="Firma Ünvanı"
+              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500 transition-colors"
               value={lead.fullName}
               onChange={e => setLead({...lead, fullName: e.target.value})}
             />
-          </div>
-
-          <div className="group">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Telefon Numarası *</label>
             <input 
               type="tel" 
-              placeholder="05xx xxx xx xx"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:border-orange-500 transition-all placeholder:text-slate-600"
+              placeholder="İletişim Numarası"
+              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500 transition-colors"
               value={lead.phone}
               onChange={e => setLead({...lead, phone: e.target.value})}
             />
-          </div>
-
-          <div className="group">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Varsa Notunuz</label>
             <textarea 
-              placeholder="Eklemek istediğiniz detaylar..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:border-orange-500 transition-all h-24 placeholder:text-slate-600"
+              placeholder="Notunuz..."
+              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500 transition-colors h-12 resize-none"
               value={lead.note}
               onChange={e => setLead({...lead, note: e.target.value})}
             />
-          </div>
-
-          <div className="pt-8">
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-5 mb-6 text-center">
-              <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Maliyet Hesaplama Tamamlandı</p>
-              <p className="text-xs font-medium text-slate-300">En uygun fiyat teklifi için hazırız.</p>
-            </div>
-
+            
             <a 
               href={getWhatsAppUrl()} 
               target={isFormValid ? "_blank" : undefined}
-              className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
+              className={`block w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest text-center transition-all ${
                 isFormValid 
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xl shadow-emerald-600/20 active:scale-95' 
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30' 
+                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-              TEKLİF İSTE (WHATSAPP)
+              WhatsApp Teklif Al
             </a>
-            {!isFormValid && (
-              <p className="text-[10px] text-slate-600 text-center mt-4 font-medium italic">
-                Lütfen zorunlu alanları (*) doldurunuz.
-              </p>
-            )}
-          </div>
         </div>
+
+        {/* Yönetici Paneli - Müşteriye Link Gönder */}
+        {!isClientView && (
+          <div className="mt-6 pt-6 border-t border-white/10">
+             <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2">Müşteriye Link Gönder</p>
+             <div className="flex gap-2">
+                <input 
+                  type="tel" 
+                  placeholder="5XX XXX XX XX" 
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-amber-500"
+                  value={customerPhoneForLink}
+                  onChange={e => setCustomerPhoneForLink(e.target.value)}
+                />
+                <button 
+                  onClick={sendLinkToCustomer}
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Gönder
+                </button>
+             </div>
+             <p className="text-[9px] text-slate-500 mt-2">
+               *Müşteriye gönderilen linkte indirim paneli gizlenir.
+             </p>
+          </div>
+        )}
+
       </div>
     </div>
   );
