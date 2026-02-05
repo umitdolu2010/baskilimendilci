@@ -2,12 +2,13 @@
 import React from 'react';
 import { ProductVariant, QuoteItem, ProductType } from '../types.ts';
 import { PRODUCT_VARIANTS } from '../constants.ts';
+import { calculateQuote, formatCurrency } from '../utils/calculations.ts';
 
 interface Props {
-  onUpdate: (item: QuoteItem | null) => void;
+  onAdd: (item: QuoteItem) => void;
 }
 
-const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
+const ProductSelector: React.FC<Props> = ({ onAdd }) => {
   const [selectedType, setSelectedType] = React.useState<ProductType>(ProductType.Mendil);
   const [selectedVariantId, setSelectedVariantId] = React.useState('');
   const [quantity, setQuantity] = React.useState<number>(10000);
@@ -28,29 +29,29 @@ const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
 
   const selectedVariant = PRODUCT_VARIANTS.find(v => v.id === selectedVariantId);
 
-  // Minimum adetler güncellendi
-  const getQuantityOptions = () => {
-    if (selectedType === ProductType.KartonBardak || selectedType === ProductType.ServisSeti || selectedType === ProductType.PetBardak) {
-      return [10000, 20000, 30000, 50000];
-    }
-    return [10000, 25000, 50000, 100000, 250000];
-  };
+  // Anlık fiyat hesaplama (Buton üzerinde göstermek için)
+  const currentItemPreview: QuoteItem | null = selectedVariant ? {
+    id: 'preview',
+    variant: selectedVariant,
+    quantity,
+    colorCount,
+    logoUploaded: !!logoFile,
+    alcoholOption: selectedType === ProductType.Mendil ? alcohol : undefined,
+    essence: selectedType === ProductType.Mendil ? essence : undefined
+  } : null;
 
-  React.useEffect(() => {
-    if (selectedVariant) {
-      const isMendilGroup = selectedType === ProductType.Mendil;
-      
-      onUpdate({ 
-        id: 'active-selection',
-        variant: selectedVariant, 
-        quantity, 
-        colorCount,
-        logoUploaded: !!logoFile,
-        alcoholOption: isMendilGroup ? alcohol : undefined,
-        essence: isMendilGroup ? essence : undefined
-      });
+  const currentCalculation = currentItemPreview ? calculateQuote([currentItemPreview]) : null;
+
+  const handleAddItem = () => {
+    if (currentItemPreview) {
+      // Create a unique ID for the list item
+      const newItem = {
+        ...currentItemPreview,
+        id: Math.random().toString(36).substr(2, 9)
+      };
+      onAdd(newItem);
     }
-  }, [selectedVariantId, quantity, logoFile, alcohol, essence, selectedType, colorCount]);
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -121,7 +122,7 @@ const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
         <section>
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3 block">3. Sipariş Adeti</label>
           <div className="grid grid-cols-3 gap-2">
-            {getQuantityOptions().map(qty => (
+            {[10000, 20000, 30000, 40000, 50000].map(qty => (
               <button
                 key={qty}
                 onClick={() => setQuantity(qty)}
@@ -131,7 +132,7 @@ const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
                   : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                 }`}
               >
-                {qty >= 1000 ? `${qty / 1000} Bin` : qty}
+                {qty / 1000} Bin
               </button>
             ))}
           </div>
@@ -231,6 +232,23 @@ const ProductSelector: React.FC<Props> = ({ onUpdate }) => {
              <button onClick={() => setLogoFile(null)} className="text-red-500 text-xs font-bold underline">Sil</button>
            )}
         </div>
+      </section>
+
+      {/* 6. EKLEME BUTONU */}
+      <section className="pt-4 border-t border-slate-100">
+         <button 
+           onClick={handleAddItem}
+           className="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-black py-4 rounded-xl shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2 transition-all active:scale-95 group"
+         >
+           <span>Teklif Listesine Ekle</span>
+           <span className="bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-xs">
+             {currentCalculation ? formatCurrency(currentCalculation.grandTotal) : '...'}
+           </span>
+           <svg className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+         </button>
+         <p className="text-center text-[10px] text-slate-400 mt-2">
+           *Farklı ürünler seçerek listenize birden fazla kalem ekleyebilirsiniz.
+         </p>
       </section>
     </div>
   );

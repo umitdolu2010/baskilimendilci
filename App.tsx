@@ -6,7 +6,16 @@ import SummaryCard from './components/SummaryCard.tsx';
 import { QuoteItem } from './types.ts';
 
 const App: React.FC = () => {
-  const [activeItem, setActiveItem] = React.useState<QuoteItem | null>(null);
+  // Artık tek bir item değil, bir liste tutuyoruz
+  const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+
+  const handleAddItem = (item: QuoteItem) => {
+    setQuoteItems(prev => [...prev, item]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setQuoteItems(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <Layout>
@@ -18,11 +27,11 @@ const App: React.FC = () => {
               <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Maliyet Hesaplama</h2>
               <p className="text-slate-500 text-sm font-medium leading-relaxed">
                 Aşağıdaki araç üzerinden ürün grubunu, teknik özellikleri ve sipariş miktarını seçin. 
-                Sistem en güncel kağıt/hammadde fiyatları üzerinden size tahmini bir maliyet çıkaracaktır.
+                "Teklif Listesine Ekle" butonuna basarak birden fazla ürünü sepetinize ekleyebilir ve toplu fiyat alabilirsiniz.
               </p>
             </div>
             
-            <ProductSelector onUpdate={setActiveItem} />
+            <ProductSelector onAdd={handleAddItem} />
 
             {/* Info Box */}
             <div className="mt-8 bg-blue-50 rounded-xl p-4 flex items-start gap-3 border border-blue-100">
@@ -37,7 +46,10 @@ const App: React.FC = () => {
 
         {/* Right Column: Sticky Summary */}
         <div className="lg:col-span-5 xl:col-span-4">
-           <SummaryCard activeItem={activeItem} isValid={!!activeItem} />
+           <SummaryCard 
+             items={quoteItems} 
+             onRemove={handleRemoveItem}
+           />
            
            <div className="mt-6 flex items-center justify-center gap-2 text-slate-400 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all">
               <span className="text-[10px] font-bold uppercase tracking-widest">Güvenli Ödeme Altyapısı:</span>
